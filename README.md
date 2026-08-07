@@ -19,6 +19,7 @@ Open `index.html`. Press **SPIN**.
 **Format** — 9:16 / 1:1 / 16:9, reel count, row count, gap.
 **Motion** — spin time, stagger between reels, overshoot (the reel passes its
 stop and settles back), motion blur.
+The collapse payoff grows from the second visible row in the default grid.
 **Look** — outline weight, how often a logo tile appears, your own logo file,
 six editable colours, reseed. The supplied WTV logo is loaded by default and
 can be replaced from the Logo file control.

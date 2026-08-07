@@ -247,9 +247,11 @@ function startSpin(startTime = performance.now(), prizeSeed = Date.now()) {
         const prize = makeTile(() => rand());
         prize.motif = 'logo';                     // the payoff is the mark
         prize.prize = true;
-        const centreRow = Math.floor(+$('endRows').value / 2);
+        // The payoff comes from the second visible row (the middle row in the
+        // default three-row layout), rather than the first/top row.
+        const payoffRow = Math.min(1, Math.max(0, rows - 1));
         reels.forEach((r) => {
-            const idx = (Math.floor(r.to) + centreRow) % r.strip.length;
+            const idx = (Math.floor(r.to) + payoffRow) % r.strip.length;
             r.strip[(idx + r.strip.length) % r.strip.length] = prize;
         });
     }
@@ -288,6 +290,8 @@ function renderFrame(now) {
     const colW = (W - gap * (n + 1)) / n;
     const rowH = (H - gap * (rows + 1)) / rows;
     const drawRows = Math.ceil(rows);
+    const collapseSourceRow = Math.min(1, Math.max(0, rowsStart - 1));
+    const collapseShiftY = collapse * collapseSourceRow * (rowH + gap);
 
     sctx.fillStyle = '#000';
     sctx.fillRect(0, 0, W, H);
@@ -324,7 +328,9 @@ function renderFrame(now) {
 
         for (let k = -1; k <= drawRows; k++) {
             const idx = ((base + k) % r.strip.length + r.strip.length) % r.strip.length;
-            const y = gap + (k - frac) * (rowH + gap);
+            // Shift the second source row toward the top as it grows, so that
+            // row becomes the final full-frame payoff instead of row one.
+            const y = gap + (k - frac) * (rowH + gap) - collapseShiftY;
             const tile = r.strip[idx];
             // Once collapsed, the winning card keeps its ground but the rest
             // dissolve, letting the backdrop through — that is the payoff.
