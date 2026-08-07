@@ -28,13 +28,10 @@ The palette ships sampled from the reference footage rather than guessed.
 
 ## Export
 
-**PNG** grabs the current frame. **REC** records a spin and saves `.webm`.
-
-To convert:
-
-```
-ffmpeg -i slot.webm -c:v libx264 -crf 16 -pix_fmt yuv420p slot.mp4
-```
+**PNG** grabs the current frame. **MP4** renders the complete spin, staggered
+landing and collapse frame by frame, then downloads a true H.264 `.mp4` at
+30fps. The exporter requires a current browser with H.264 WebCodecs support,
+such as Chrome or Edge.
 
 ## Reference
 

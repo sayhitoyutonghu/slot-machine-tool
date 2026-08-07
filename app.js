@@ -13,6 +13,8 @@
 const PALETTE = ['#f2d53d', '#01a9f0', '#35ff6f', '#ff4824', '#ff2fd0', '#7b2ff7', '#fdf74e', '#111111'];
 
 const RATIOS = { '9:16': [1080, 1920], '1:1': [1080, 1080], '16:9': [1920, 1080] };
+const EXPORT_FPS = 30;
+const MP4_ENCODER_URL = 'https://cdn.jsdelivr.net/npm/mediabunny@1.52.3/+esm';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('stage');
@@ -28,7 +30,7 @@ let colours = PALETTE.slice(0, 6);
 let logoImg = null;
 let reels = [];
 let spinStart = null;
-let recorder = null, chunks = [];
+let exportInProgress = false;
 
 /* ── tile artwork ──────────────────────────────────────────────────────
  * Each tile is one flat graphic on a flat ground — stripes, rings, dots and
@@ -226,7 +228,7 @@ function easeBack(t, back) {
     return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 }
 
-function startSpin() {
+function startSpin(startTime = performance.now(), prizeSeed = Date.now()) {
     const rows = +$('rows').value;
 
     reels.forEach((r, i) => {
@@ -239,7 +241,7 @@ function startSpin() {
     // A slot machine pays out on matching symbols. Without this the reels just
     // stop wherever they like, which reads as a scrolling ticker, not a spin.
     if ($('jackpot').checked) {
-        const rand = rng(Date.now() & 0xffff);
+        const rand = rng(prizeSeed & 0xffff);
         const prize = makeTile(() => rand());
         prize.motif = 'logo';                     // the payoff is the mark
         prize.prize = true;
@@ -250,12 +252,12 @@ function startSpin() {
         });
     }
 
-    spinStart = performance.now();
+    spinStart = startTime;
 }
 
 /* ── frame ─────────────────────────────────────────────────────────── */
 
-function draw(now) {
+function renderFrame(now) {
     const [W, H] = RATIOS[$('ratio').value];
     if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
     if (scene.width !== W || scene.height !== H) { scene.width = W; scene.height = H; }
@@ -347,6 +349,10 @@ function draw(now) {
 
     composite(W, H);
     applyDegrade(W, H);
+}
+
+function draw(now) {
+    if (!exportInProgress) renderFrame(now);
     requestAnimationFrame(draw);
 }
 
@@ -449,7 +455,7 @@ bindOut('endRows','endRowsOut'); bindOut('col','colOut', v => v + 's');
 ['reels', 'rows', 'endRows', 'logoFreq'].forEach(id =>
     $(id).addEventListener('change', () => buildReels()));
 
-$('spin').addEventListener('click', startSpin);
+$('spin').addEventListener('click', () => startSpin());
 $('reseed').addEventListener('click', () => buildReels());
 
 $('logoFile').addEventListener('change', (e) => {
@@ -476,30 +482,123 @@ $('shot').addEventListener('click', () => {
     a.click();
 });
 
-$('record').addEventListener('click', () => {
-    if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
-    chunks = [];
-    const stream = canvas.captureStream(60);
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-        ? 'video/webm;codecs=vp9' : 'video/webm';
-    recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12e6 });
-    recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-    recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
+async function exportMp4() {
+    if (exportInProgress) return;
+
+    const recordButton = $('record');
+    const interactiveControls = [...document.querySelectorAll('button, input, select')];
+    const disabledState = interactiveControls.map(control => control.disabled);
+    exportInProgress = true;
+    interactiveControls.forEach(control => { control.disabled = true; });
+    recordButton.classList.add('recording');
+    recordButton.textContent = 'MP4 0%';
+    $('status').textContent = 'Preparing H.264 encoder…';
+
+    try {
+        const {
+            BufferTarget,
+            CanvasSource,
+            Mp4OutputFormat,
+            Output,
+            Quality,
+            canEncodeVideo,
+        } = await import(MP4_ENCODER_URL);
+
+        const [width, height] = RATIOS[$('ratio').value];
+        // CanvasSource reads the canvas dimensions when it is constructed, so
+        // apply a newly selected aspect ratio before creating the video track.
+        if (canvas.width !== width || canvas.height !== height) {
+            canvas.width = width;
+            canvas.height = height;
+        }
+        if (scene.width !== width || scene.height !== height) {
+            scene.width = width;
+            scene.height = height;
+        }
+        const spinSeconds = parseFloat($('dur').value);
+        const staggerSeconds = parseFloat($('stag').value) * Math.max(0, reels.length - 1);
+        const collapseSeconds = parseFloat($('col').value);
+        const holdSeconds = 0.5;
+        const exportDuration = spinSeconds + staggerSeconds + collapseSeconds + holdSeconds;
+        const frameCount = Math.max(1, Math.ceil(exportDuration * EXPORT_FPS));
+        const quality = new Quality({
+            bitrate: width * height >= 1_500_000 ? 18_000_000 : 14_000_000,
+            bitrateMode: 'variable',
+        });
+        const supported = await canEncodeVideo('avc', {
+            width,
+            height,
+            quality,
+            latencyMode: 'quality',
+        });
+        if (!supported) throw new Error('This browser cannot encode H.264 MP4 video. Try current Chrome or Edge.');
+
+        const target = new BufferTarget();
+        const output = new Output({
+            format: new Mp4OutputFormat({ fastStart: 'in-memory' }),
+            target,
+        });
+        const videoSource = new CanvasSource(canvas, {
+            codec: 'avc',
+            quality,
+            keyFrameInterval: 2,
+            latencyMode: 'quality',
+            alpha: 'discard',
+        });
+        output.addVideoTrack(videoSource, {
+            frameRate: EXPORT_FPS,
+            maximumPacketCount: frameCount,
+        });
+        output.setMetadataTags({
+            title: `Slot Machine Tool — ${$('ratio').value}`,
+            artist: 'WTV',
+            comment: 'Frame-accurate slot-machine bumper export',
+        });
+        await output.start();
+
+        const exportSeed = Date.now();
+        startSpin(0, exportSeed);
+        for (let frame = 0; frame < frameCount; frame++) {
+            const timestamp = frame / EXPORT_FPS;
+            renderFrame(timestamp * 1000);
+            await videoSource.add(timestamp, 1 / EXPORT_FPS);
+
+            if (frame % 6 === 0 || frame === frameCount - 1) {
+                const progress = Math.round(((frame + 1) / frameCount) * 100);
+                recordButton.textContent = `MP4 ${progress}%`;
+                $('status').textContent = `Encoding MP4… ${progress}%`;
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+        }
+
+        videoSource.close();
+        await output.finalize();
+        if (!target.buffer) throw new Error('MP4 encoding completed without an output file.');
+
+        const blob = new Blob([target.buffer], { type: 'video/mp4' });
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.download = `slot-${$('ratio').value.replace(':', 'x')}-${Date.now()}.webm`;
-        a.href = URL.createObjectURL(blob);
+        a.download = `slot-${$('ratio').value.replace(':', 'x')}-${Date.now()}.mp4`;
+        a.href = url;
         a.click();
-        $('record').classList.remove('recording');
-        $('record').textContent = '● REC';
-        $('status').textContent = 'Saved .webm — convert to MP4 with ffmpeg if needed';
-    };
-    recorder.start();
-    $('record').classList.add('recording');
-    $('record').textContent = '■ STOP';
-    $('status').textContent = 'Recording…';
-    startSpin();
-});
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        $('status').textContent = `Saved ${exportDuration.toFixed(1)}s MP4 at ${EXPORT_FPS} fps`;
+
+        // Leave the live preview on the same completed payoff frame when the
+        // animation loop resumes instead of jumping back into the spin.
+        spinStart = performance.now() - exportDuration * 1000;
+    } catch (error) {
+        console.error(error);
+        $('status').textContent = error instanceof Error ? error.message : 'MP4 export failed';
+    } finally {
+        exportInProgress = false;
+        interactiveControls.forEach((control, index) => { control.disabled = disabledState[index]; });
+        recordButton.classList.remove('recording');
+        recordButton.textContent = '● MP4';
+    }
+}
+
+$('record').addEventListener('click', exportMp4);
 
 buildReels();
 requestAnimationFrame(draw);
@@ -507,4 +606,3 @@ requestAnimationFrame(draw);
 // ?autospin — starts a spin on load. Handy when screen-recording the tool or
 // dropping it into a demo where nobody is there to press the button.
 if (location.search.includes('autospin')) setTimeout(startSpin, 300);
-
