@@ -1,0 +1,71 @@
+:root{
+  --ink:#000;
+  --paper:#f4f4f2;
+  --line:#000;
+  --accent:#f2d53d;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font:13px/1.45 ui-monospace,"SF Mono",Menlo,monospace;
+  display:flex;flex-direction:column;
+}
+
+header{padding:18px 20px 12px;border-bottom:3px solid var(--line)}
+h1{margin:0;font-size:26px;letter-spacing:-.02em}
+.sub{margin:4px 0 0;opacity:.55;text-transform:uppercase;letter-spacing:.14em;font-size:10px}
+
+main{flex:1;display:grid;grid-template-columns:1fr 300px;gap:0;min-height:0}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+
+.stage{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:20px;min-width:0;background:#dedcd6;
+}
+canvas{
+  max-width:100%;max-height:calc(100vh - 230px);
+  border:3px solid var(--line);
+  box-shadow:8px 8px 0 rgba(0,0,0,.85);
+  background:#fff;
+}
+.stage-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+button{
+  font:inherit;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:9px 16px;background:#fff;color:var(--ink);
+  border:2px solid var(--line);cursor:pointer;
+  box-shadow:3px 3px 0 var(--line);
+}
+button:hover{background:var(--ink);color:#fff}
+button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--line)}
+button.primary{background:var(--accent)}
+button.primary:hover{background:var(--ink);color:var(--accent)}
+button.ghost{box-shadow:none;border-style:dashed;width:100%;margin-top:6px}
+button.recording{background:#ff4824;color:#fff}
+
+#status{font-size:11px;opacity:.6}
+
+.panel{
+  border-left:3px solid var(--line);
+  padding:14px;overflow:auto;background:var(--paper);
+}
+fieldset{border:2px solid var(--line);margin:0 0 14px;padding:10px 12px 12px}
+legend{font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:10px;padding:0 6px}
+label{display:block;margin:9px 0;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+label.file{margin-top:12px}
+output{float:right;font-weight:700;opacity:.65}
+input[type=range]{width:100%;margin-top:5px;accent-color:var(--ink)}
+select,input[type=file]{width:100%;margin-top:5px;font:inherit;padding:5px;border:2px solid var(--line);background:#fff}
+
+.swatches{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.swatches input[type=color]{
+  width:34px;height:30px;padding:0;border:2px solid var(--line);background:none;cursor:pointer;
+}
+
+footer{border-top:2px solid var(--line);padding:8px 20px;font-size:10px;opacity:.5}
+footer p{margin:0}
+
+label.check{display:flex;align-items:center;gap:8px;text-transform:uppercase}
+label.check input{width:auto;margin:0;accent-color:var(--ink)}

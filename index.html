@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slot Machine Tool</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>SLOT_MACHINE</h1>
+  <p class="sub">Vertical reel transitions // 2000s broadcast bumper</p>
+</header>
+
+<main>
+  <section class="stage">
+    <canvas id="stage"></canvas>
+    <div class="stage-actions">
+      <button id="spin" class="primary">SPIN</button>
+      <button id="record">● REC</button>
+      <button id="shot">PNG</button>
+      <span id="status"></span>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <fieldset>
+      <legend>Format</legend>
+      <label>Ratio
+        <select id="ratio">
+          <option value="9:16">9:16 — TikTok / Reels</option>
+          <option value="1:1">1:1 — Feed</option>
+          <option value="16:9" selected>16:9 — YouTube</option>
+        </select>
+      </label>
+      <label>Reels <output id="reelsOut">3</output>
+        <input type="range" id="reels" min="2" max="10" value="3">
+      </label>
+      <label>Rows <output id="rowsOut">3</output>
+        <input type="range" id="rows" min="1" max="9" value="3">
+      </label>
+      <label>Gap <output id="gapOut">6</output>
+        <input type="range" id="gap" min="0" max="40" value="6">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Payoff</legend>
+      <label>Pattern
+        <select id="backdrop">
+          <option value="rings" selected>Concentric rings</option>
+          <option value="stripes">Stripes</option>
+          <option value="burst">Sunburst</option>
+          <option value="none">None — per-tile grounds</option>
+        </select>
+      </label>
+      <label>Scale <output id="bdScaleOut">1</output>
+        <input type="range" id="bdScale" min="0.3" max="3" step="0.1" value="1">
+      </label>
+      <label>Drift <output id="bdDriftOut">0.15</output>
+        <input type="range" id="bdDrift" min="0" max="1" step="0.05" value="0.15">
+      </label>
+      <label>Collapse to <output id="endRowsOut">1</output> row(s)
+        <input type="range" id="endRows" min="1" max="4" value="1">
+      </label>
+      <label>Collapse time <output id="colOut">0.7s</output>
+        <input type="range" id="col" min="0.2" max="2" step="0.1" value="0.7">
+      </label>
+      <label>Divider <output id="divOut">10</output>
+        <input type="range" id="div" min="0" max="30" value="10">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Motion</legend>
+      <label>Spin time <output id="durOut">1.6s</output>
+        <input type="range" id="dur" min="0.4" max="4" step="0.1" value="1.6">
+      </label>
+      <label>Stagger <output id="stagOut">0.18s</output>
+        <input type="range" id="stag" min="0" max="0.6" step="0.02" value="0.18">
+      </label>
+      <label>Overshoot <output id="backOut">1.6</output>
+        <input type="range" id="back" min="0" max="4" step="0.1" value="1.6">
+      </label>
+      <label>Blur <output id="blurOut">0.5</output>
+        <input type="range" id="blur" min="0" max="1" step="0.05" value="0.5">
+      </label>
+      <label class="check">
+        <input type="checkbox" id="jackpot" checked> Land on matching tile
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Look</legend>
+      <label>Outline <output id="strokeOut">6</output>
+        <input type="range" id="stroke" min="0" max="20" value="6">
+      </label>
+      <label>Logo frequency <output id="logoFreqOut">0.25</output>
+        <input type="range" id="logoFreq" min="0" max="1" step="0.05" value="0.25">
+      </label>
+      <label class="file">Logo (SVG / PNG)
+        <input type="file" id="logoFile" accept="image/*">
+      </label>
+      <div class="swatches" id="swatches"></div>
+      <button id="reseed" class="ghost">RESEED TILES</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Degrade</legend>
+      <label>Screen bulge <output id="bulgeOut">0.12</output>
+        <input type="range" id="bulge" min="0" max="0.4" step="0.01" value="0.12">
+      </label>
+      <label>Vignette <output id="vigOut">0.25</output>
+        <input type="range" id="vig" min="0" max="1" step="0.05" value="0.25">
+      </label>
+      <label>Scanlines <output id="scanOut">0</output>
+        <input type="range" id="scan" min="0" max="1" step="0.05" value="0">
+      </label>
+      <label>Chroma shift <output id="chromaOut">0</output>
+        <input type="range" id="chroma" min="0" max="12" step="0.5" value="0">
+      </label>
+      <label>Grain <output id="grainOut">0</output>
+        <input type="range" id="grain" min="0" max="0.4" step="0.02" value="0">
+      </label>
+    </fieldset>
+  </aside>
+</main>
+
+<footer>
+  <p>Reference: MTV Music Transitions 2021, 10–15s. Palette sampled from source.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
