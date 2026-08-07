@@ -20,7 +20,8 @@ Open `index.html`. Press **SPIN**.
 **Motion** — spin time, stagger between reels, overshoot (the reel passes its
 stop and settles back), motion blur.
 **Look** — outline weight, how often a logo tile appears, your own logo file,
-six editable colours, reseed.
+six editable colours, reseed. The supplied WTV logo is loaded by default and
+can be replaced from the Logo file control.
 **Degrade** — scanlines, chroma shift, grain, applied as a pass over the
 finished frame so it can be dialled after seeing the motion.
 

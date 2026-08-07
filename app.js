@@ -27,7 +27,9 @@ const scene = document.createElement('canvas');
 const sctx = scene.getContext('2d', { alpha: false });
 
 let colours = PALETTE.slice(0, 6);
-let logoImg = null;
+let logoImg = new Image();
+logoImg.onload = () => buildReels();
+logoImg.src = new URL('wtv-logo.png', document.baseURI).href;
 let reels = [];
 let spinStart = null;
 let exportInProgress = false;
