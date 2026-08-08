@@ -235,9 +235,11 @@ function startSpin(startTime = performance.now(), prizeSeed = Date.now()) {
 
     reels.forEach((r, i) => {
         r.from = r.offset;
-        // Whole number of tiles so a reel always lands on a tile boundary.
-        r.travel = (r.strip.length - rows) + (6 + i * 2);
-        r.to = r.from + r.travel;
+        // Always target an integer tile boundary, even when a new spin starts
+        // before the previous one has fully settled at a fractional offset.
+        const wholeTileStop = Math.ceil(r.from);
+        r.to = wholeTileStop + (r.strip.length - rows) + (6 + i * 2);
+        r.travel = r.to - r.from;
     });
 
     // A slot machine pays out on matching symbols. Without this the reels just
