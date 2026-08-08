@@ -249,9 +249,9 @@ function startSpin(startTime = performance.now(), prizeSeed = Date.now()) {
         const prize = makeTile(() => rand());
         prize.motif = 'logo';                     // the payoff is the mark
         prize.prize = true;
-        // The payoff comes from the second visible row (the middle row in the
-        // default three-row layout), rather than the first/top row.
-        const payoffRow = Math.min(1, Math.max(0, rows - 1));
+        // The payoff sits on the middle row, which is also the row the collapse
+        // keeps — draw() derives the same index, so the two must not diverge.
+        const payoffRow = Math.floor(rows / 2);
         reels.forEach((r) => {
             const idx = (Math.floor(r.to) + payoffRow) % r.strip.length;
             r.strip[(idx + r.strip.length) % r.strip.length] = prize;
@@ -284,6 +284,7 @@ function renderFrame(now) {
         collapse = collapse * collapse * (3 - 2 * collapse);   // smoothstep
     }
     const rows = rowsStart + (rowsEnd - rowsStart) * collapse;
+    const centreRow = Math.floor(rowsStart / 2);
     const dur = parseFloat($('dur').value) * 1000;
     const stag = parseFloat($('stag').value) * 1000;
     const back = parseFloat($('back').value);
@@ -328,7 +329,7 @@ function renderFrame(now) {
         const blurPx = Math.min(speed * rowH * blurAmt, rowH * 0.9);
         if (blurPx > 1) sctx.filter = `blur(${blurPx * 0.12}px)`;
 
-        for (let k = -1; k <= drawRows; k++) {
+        for (let k = -1; k <= drawRows + centreRow; k++) {
             const idx = ((base + k) % r.strip.length + r.strip.length) % r.strip.length;
             // Shift the second source row toward the top as it grows, so that
             // row becomes the final full-frame payoff instead of row one.
