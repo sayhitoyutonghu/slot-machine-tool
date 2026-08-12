@@ -290,8 +290,14 @@ function renderFrame(now) {
     const back = parseFloat($('back').value);
     const blurAmt = parseFloat($('blur').value);
 
-    const colW = (W - gap * (n + 1)) / n;
-    const rowH = (H - gap * (rows + 1)) / rows;
+    // The gap runs between panels and again around the outside, so a fully
+    // collapsed payoff used to stop a gap short of all four edges and leave the
+    // backdrop showing through as thin bands. Close the outer margin as the
+    // reels collapse, so the winning row bleeds off the frame the way the
+    // reference does, while the spin keeps its border.
+    const outerGap = gap * (1 - collapse);
+    const colW = (W - outerGap * 2 - gap * (n - 1)) / n;
+    const rowH = (H - outerGap * 2 - gap * (rows - 1)) / rows;
     const drawRows = Math.ceil(rows);
     const collapseSourceRow = Math.min(1, Math.max(0, rowsStart - 1));
     const collapseShiftY = collapse * collapseSourceRow * (rowH + gap);
@@ -315,13 +321,13 @@ function renderFrame(now) {
             }
         }
 
-        const x = gap + i * (colW + gap);
+        const x = outerGap + i * (colW + gap);
         const frac = r.offset % 1;
         const base = Math.floor(r.offset);
 
         sctx.save();
         sctx.beginPath();
-        sctx.rect(x, gap, colW, H - gap * 2);
+        sctx.rect(x, outerGap, colW, H - outerGap * 2);
         sctx.clip();
 
         // Motion blur stands in for the smear a real reel leaves; scaled by speed
@@ -333,7 +339,7 @@ function renderFrame(now) {
             const idx = ((base + k) % r.strip.length + r.strip.length) % r.strip.length;
             // Shift the second source row toward the top as it grows, so that
             // row becomes the final full-frame payoff instead of row one.
-            const y = gap + (k - frac) * (rowH + gap) - collapseShiftY;
+            const y = outerGap + (k - frac) * (rowH + gap) - collapseShiftY;
             const tile = r.strip[idx];
             // Once collapsed, the winning card keeps its ground but the rest
             // dissolve, letting the backdrop through — that is the payoff.
@@ -351,7 +357,7 @@ function renderFrame(now) {
     if (divW > 0 && n > 1) {
         sctx.fillStyle = '#000';
         for (let i = 1; i < n; i++) {
-            const dx = gap + i * (colW + gap) - gap / 2 - divW / 2;
+            const dx = outerGap + i * (colW + gap) - gap / 2 - divW / 2;
             sctx.fillRect(dx, 0, divW, H);
         }
         sctx.fillRect(0, 0, divW, H);
@@ -384,6 +390,11 @@ function composite(W, H) {
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, W, H);
 
+        // The strip loop pulls rows toward the centre by (1 - k * 0.35), so the
+        // warped picture is shorter than the frame and leaves a band of bare
+        // canvas top and bottom. Overscan by exactly that much to put the edges
+        // back off-frame, which is what a real tube does.
+        const overscan = 1 / (1 - k * 0.35);
         const STRIPS = 90;
         const sh = H / STRIPS;
         for (let i = 0; i < STRIPS; i++) {
@@ -394,10 +405,10 @@ function composite(W, H) {
 
             const dw = W * sx;
             const dx = (W - dw) / 2;
-            const dh = sh * sy;
+            const dh = sh * sy * overscan;
             // Pull the strip toward the centre so rows crowd at the edges,
             // which is what makes the surface read as curved rather than zoomed.
-            const dy = H / 2 + (i * sh + sh / 2 - H / 2) * (1 - k * 0.35) - dh / 2;
+            const dy = H / 2 + (i * sh + sh / 2 - H / 2) * (1 - k * 0.35) * overscan - dh / 2;
 
             ctx.drawImage(scene, 0, i * sh, W, sh, dx, dy, dw, dh);
         }
