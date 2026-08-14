@@ -36,6 +36,16 @@ logoImg.onload = () => {
         startSpin(0, 1);
         renderFrame(10_000);
         exportInProgress = true;
+    } else if (QUERY.has('merge')) {
+        startSpin(0, 1);
+        const phase = Math.max(0, Math.min(1, parseFloat(QUERY.get('merge')) || 0.5));
+        const mergePreview = parseFloat($('dur').value)
+                           + parseFloat($('stag').value) * (reels.length - 1)
+                           + parseFloat($('col').value)
+                           + parseFloat($('matchHold').value)
+                           + parseFloat($('mergeTime').value) * phase;
+        renderFrame(mergePreview * 1000);
+        exportInProgress = true;
     } else if (QUERY.has('match')) {
         startSpin(0, 1);
         const matchPreview = parseFloat($('dur').value)
@@ -167,6 +177,20 @@ function drawTile(t, x, y, w, h) {
         ctx.strokeRect(x + sw / 2, y + sw / 2, w - sw, h - sw);
     }
     ctx.restore();
+}
+
+function drawPrizeGround(t, x, y, w, h, opacity) {
+    const sw = parseFloat($('stroke').value);
+    sctx.save();
+    sctx.globalAlpha = opacity;
+    sctx.fillStyle = t.bg;
+    sctx.fillRect(x, y, w, h);
+    if (sw > 0) {
+        sctx.strokeStyle = '#000';
+        sctx.lineWidth = sw * opacity;
+        sctx.strokeRect(x + sw / 2, y + sw / 2, w - sw, h - sw);
+    }
+    sctx.restore();
 }
 
 /* ── backdrop ───────────────────────────────────────────────────────
@@ -372,41 +396,70 @@ function renderFrame(now) {
             // Once collapsed, the winning card keeps its ground but the rest
             // dissolve, letting the backdrop through — that is the payoff.
             const isPrize = tile.prize === true;
-            sctx.globalAlpha = isPrize ? 1 - merge : 1 - collapse;
-            drawTile(tile, x, y, colW, rowH);
+            if (isPrize && mergeLogo && merge > 0) {
+                // Keep the panel fully opaque; a geometric reveal replaces it
+                // below, avoiding a muddy crossfade between two bright grounds.
+                drawPrizeGround(tile, x, y, colW, rowH, 1);
+            } else {
+                sctx.globalAlpha = isPrize ? 1 : 1 - collapse;
+                drawTile(tile, x, y, colW, rowH);
+            }
             sctx.globalAlpha = 1;
         }
+        sctx.restore();
+    }
+
+    // Reveal the shared payoff ground from the convergence point. This turns
+    // the background change into a graphic wipe rather than an opacity fade.
+    if (merge > 0) {
+        const reveal = smoothstep(merge);
+        const radius = Math.hypot(W, H) * 0.54 * reveal;
+        sctx.save();
+        sctx.beginPath();
+        sctx.arc(W / 2, H / 2, radius, 0, Math.PI * 2);
+        sctx.clip();
+        drawBackdrop(W, H, now, 1);
         sctx.restore();
     }
 
     // Thin black rules between panels — the reference separates the screens with
     // a hairline rather than a gap, so the backdrop reads as one surface.
     const divW = +$('div').value;
-    const dividerAlpha = mergeLogo ? 1 - merge : 1;
-    if (divW > 0 && n > 1 && dividerAlpha > 0) {
-        sctx.save();
-        sctx.globalAlpha = dividerAlpha;
+    const dividerScale = mergeLogo ? 1 - smoothstep(merge / 0.82) : 1;
+    if (divW > 0 && n > 1 && dividerScale > 0) {
+        const animatedDivW = divW * dividerScale;
         sctx.fillStyle = '#000';
         for (let i = 1; i < n; i++) {
-            const dx = outerGap + i * (colW + gap) - gap / 2 - divW / 2;
-            sctx.fillRect(dx, 0, divW, H);
+            const dx = outerGap + i * (colW + gap) - gap / 2 - animatedDivW / 2;
+            sctx.fillRect(dx, 0, animatedDivW, H);
         }
-        sctx.fillRect(0, 0, divW, H);
-        sctx.fillRect(W - divW, 0, divW, H);
-        sctx.restore();
+        sctx.fillRect(0, 0, animatedDivW, H);
+        sctx.fillRect(W - animatedDivW, 0, animatedDivW, H);
     }
 
-    // The final logo is deliberately sized against the shorter dimension. In
-    // 9:16 this creates a large central square instead of three narrow marks,
-    // while landscape formats retain comfortable broadcast-style breathing room.
+    // The three jackpot logos remain opaque and physically converge. At the end
+    // they occupy the exact same pixels, so three marks naturally become one —
+    // no crossfade or sudden replacement is needed.
     if (merge > 0 && logoImg?.complete && logoImg.naturalWidth > 0) {
         const portrait = H / W > 1.2;
         const target = portrait ? Math.min(W * 0.84, H * 0.54)
                                 : Math.min(W * 0.48, H * 0.72);
-        const size = target * (0.72 + 0.28 * easeBack(merge, 0.65));
+        const startSize = Math.min(colW, rowH) * 0.68;
+        const travel = smoothstep(merge);
         sctx.save();
-        sctx.globalAlpha = merge;
-        sctx.drawImage(logoImg, (W - size) / 2, (H - size) / 2, size, size);
+        const centre = Math.floor(n / 2);
+        const drawOrder = [...Array(n).keys()].filter(i => i !== centre).concat(centre);
+        for (const i of drawOrder) {
+            const startX = outerGap + i * (colW + gap) + colW / 2;
+            const cx = startX + (W / 2 - startX) * travel;
+            // Outer marks tuck behind the centre mark and physically contract;
+            // the centre mark grows into the final payoff. Nothing changes
+            // opacity, so the fusion reads as motion rather than a dissolve.
+            const size = i === centre
+                ? startSize + (target - startSize) * easeBack(travel, 0.28)
+                : startSize * (1 - 0.96 * travel);
+            sctx.drawImage(logoImg, cx - size / 2, H / 2 - size / 2, size, size);
+        }
         sctx.restore();
     }
 

@@ -16,6 +16,7 @@ Open `index.html`. Press **SPIN**.
 Add `&ratio=9:16` (or another supported ratio) to preview a specific format.
 `?payoff&ratio=9:16` freezes the completed end frame for art-direction review.
 `?match&ratio=9:16` freezes the enlarged three-logo hold frame.
+`?merge=.5&ratio=9:16` freezes the geometric merge halfway through.
 
 ## Controls
 
