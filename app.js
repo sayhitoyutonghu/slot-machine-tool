@@ -36,6 +36,14 @@ logoImg.onload = () => {
         startSpin(0, 1);
         renderFrame(10_000);
         exportInProgress = true;
+    } else if (QUERY.has('match')) {
+        startSpin(0, 1);
+        const matchPreview = parseFloat($('dur').value)
+                           + parseFloat($('stag').value) * (reels.length - 1)
+                           + parseFloat($('col').value)
+                           + parseFloat($('matchHold').value) * 0.5;
+        renderFrame(matchPreview * 1000);
+        exportInProgress = true;
     }
 };
 logoImg.src = new URL('wtv-logo.png', document.baseURI).href;
@@ -286,17 +294,22 @@ function renderFrame(now) {
     const rowsStart = +$('rows').value;
     const rowsEnd = +$('endRows').value;
     const colDur = parseFloat($('col').value) * 1000;
+    const mergeDur = parseFloat($('mergeTime').value) * 1000;
+    const mergeLogo = $('jackpot').checked && $('mergeLogo').checked;
 
-    // The spin finishes, then the grid collapses: nine cells become three
-    // panels and the backdrop arrives with them. Rows are interpolated as a
-    // float so the row height grows continuously instead of snapping.
+    // The ending has three distinct beats: collapse the grid into three tall
+    // matching panels, hold that enlarged jackpot, then merge them into one
+    // full-frame logo. Keeping separate clocks makes the middle beat legible.
     let collapse = 0;
+    let merge = 0;
     if (spinStart !== null) {
         const spinEnds = spinStart + parseFloat($('dur').value) * 1000
                        + parseFloat($('stag').value) * 1000 * (n - 1);
         const matchHold = parseFloat($('matchHold').value) * 1000;
-        collapse = Math.max(0, Math.min(1, (now - spinEnds - matchHold) / colDur));
-        collapse = collapse * collapse * (3 - 2 * collapse);   // smoothstep
+        collapse = smoothstep((now - spinEnds) / colDur);
+        if (mergeLogo) {
+            merge = smoothstep((now - spinEnds - colDur - matchHold) / mergeDur);
+        }
     }
     const rows = rowsStart + (rowsEnd - rowsStart) * collapse;
     const centreRow = Math.floor(rowsStart / 2);
@@ -304,11 +317,6 @@ function renderFrame(now) {
     const stag = parseFloat($('stag').value) * 1000;
     const back = parseFloat($('back').value);
     const blurAmt = parseFloat($('blur').value);
-    const mergeLogo = $('jackpot').checked && $('mergeLogo').checked;
-    // Let the individual winning cards hand off to one full-frame mark. Starting
-    // the handoff after the collapse begins preserves the satisfying three-reel
-    // landing before the final identity frame takes over.
-    const merge = mergeLogo ? smoothstep((collapse - 0.18) / 0.72) : 0;
 
     // The gap runs between panels and again around the outside, so a fully
     // collapsed payoff used to stop a gap short of all four edges and leave the
@@ -374,7 +382,7 @@ function renderFrame(now) {
     // Thin black rules between panels — the reference separates the screens with
     // a hairline rather than a gap, so the backdrop reads as one surface.
     const divW = +$('div').value;
-    const dividerAlpha = mergeLogo ? 1 - smoothstep(collapse / 0.72) : 1;
+    const dividerAlpha = mergeLogo ? 1 - merge : 1;
     if (divW > 0 && n > 1 && dividerAlpha > 0) {
         sctx.save();
         sctx.globalAlpha = dividerAlpha;
@@ -512,6 +520,7 @@ bindOut('bdScale','bdScaleOut'); bindOut('bdDrift','bdDriftOut');
 bindOut('div','divOut');
 bindOut('endRows','endRowsOut'); bindOut('col','colOut', v => v + 's');
 bindOut('matchHold','matchHoldOut', v => v + 's');
+bindOut('mergeTime','mergeTimeOut', v => v + 's');
 
 ['reels', 'rows', 'endRows', 'logoFreq'].forEach(id =>
     $(id).addEventListener('change', () => buildReels()));
@@ -579,10 +588,12 @@ async function exportMp4() {
         const spinSeconds = parseFloat($('dur').value);
         const staggerSeconds = parseFloat($('stag').value) * Math.max(0, reels.length - 1);
         const collapseSeconds = parseFloat($('col').value);
-        const matchHoldSeconds = parseFloat($('matchHold').value);
+        const mergeEnabled = $('jackpot').checked && $('mergeLogo').checked;
+        const matchHoldSeconds = mergeEnabled ? parseFloat($('matchHold').value) : 0;
+        const mergeSeconds = mergeEnabled ? parseFloat($('mergeTime').value) : 0;
         const holdSeconds = 0.5;
         const exportDuration = spinSeconds + staggerSeconds + matchHoldSeconds
-                             + collapseSeconds + holdSeconds;
+                             + collapseSeconds + mergeSeconds + holdSeconds;
         const frameCount = Math.max(1, Math.ceil(exportDuration * EXPORT_FPS));
         const quality = new Quality({
             bitrate: width * height >= 1_500_000 ? 18_000_000 : 14_000_000,
