@@ -13,6 +13,8 @@ video — no screen recording, no dropped frames.
 Open `index.html`. Press **SPIN**.
 
 `?autospin` starts a spin on load — useful when recording the tool itself.
+Add `&ratio=9:16` (or another supported ratio) to preview a specific format.
+`?payoff&ratio=9:16` freezes the completed end frame for art-direction review.
 
 ## Controls
 
@@ -20,6 +22,13 @@ Open `index.html`. Press **SPIN**.
 **Motion** — spin time, stagger between reels, overshoot (the reel passes its
 stop and settles back), motion blur.
 The collapse payoff grows from the second visible row in the default grid.
+With **Merge logo on payoff** enabled, the matching reel tiles hand off to one
+large centered logo and the panel dividers disappear. This is the recommended
+ending for 9:16 because the full-frame backdrop carries the tall composition
+instead of leaving three isolated marks in narrow columns.
+**Match hold** keeps the three matching logo tiles on screen before that merge,
+making the jackpot and the transition into the final identity frame read as two
+clear beats.
 **Look** — outline weight, how often a logo tile appears, your own logo file,
 six editable colours, reseed. The supplied WTV logo is loaded by default and
 can be replaced from the Logo file control.

@@ -15,6 +15,7 @@ const PALETTE = ['#f2d53d', '#01a9f0', '#35ff6f', '#ff4824', '#ff2fd0', '#7b2ff7
 const RATIOS = { '9:16': [1080, 1920], '1:1': [1080, 1080], '16:9': [1920, 1080] };
 const EXPORT_FPS = 30;
 const MP4_ENCODER_URL = 'https://cdn.jsdelivr.net/npm/mediabunny@1.52.3/+esm';
+const QUERY = new URLSearchParams(location.search);
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('stage');
@@ -28,7 +29,15 @@ const sctx = scene.getContext('2d', { alpha: false });
 
 let colours = PALETTE.slice(0, 6);
 let logoImg = new Image();
-logoImg.onload = () => buildReels();
+logoImg.onload = () => {
+    buildReels();
+    // Deterministic final-frame preview for visual QA and art-direction review.
+    if (QUERY.has('payoff')) {
+        startSpin(0, 1);
+        renderFrame(10_000);
+        exportInProgress = true;
+    }
+};
 logoImg.src = new URL('wtv-logo.png', document.baseURI).href;
 let reels = [];
 let spinStart = null;
@@ -230,6 +239,11 @@ function easeBack(t, back) {
     return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 }
 
+function smoothstep(t) {
+    const x = Math.max(0, Math.min(1, t));
+    return x * x * (3 - 2 * x);
+}
+
 function startSpin(startTime = performance.now(), prizeSeed = Date.now()) {
     const rows = +$('rows').value;
 
@@ -280,7 +294,8 @@ function renderFrame(now) {
     if (spinStart !== null) {
         const spinEnds = spinStart + parseFloat($('dur').value) * 1000
                        + parseFloat($('stag').value) * 1000 * (n - 1);
-        collapse = Math.max(0, Math.min(1, (now - spinEnds) / colDur));
+        const matchHold = parseFloat($('matchHold').value) * 1000;
+        collapse = Math.max(0, Math.min(1, (now - spinEnds - matchHold) / colDur));
         collapse = collapse * collapse * (3 - 2 * collapse);   // smoothstep
     }
     const rows = rowsStart + (rowsEnd - rowsStart) * collapse;
@@ -289,6 +304,11 @@ function renderFrame(now) {
     const stag = parseFloat($('stag').value) * 1000;
     const back = parseFloat($('back').value);
     const blurAmt = parseFloat($('blur').value);
+    const mergeLogo = $('jackpot').checked && $('mergeLogo').checked;
+    // Let the individual winning cards hand off to one full-frame mark. Starting
+    // the handoff after the collapse begins preserves the satisfying three-reel
+    // landing before the final identity frame takes over.
+    const merge = mergeLogo ? smoothstep((collapse - 0.18) / 0.72) : 0;
 
     // The gap runs between panels and again around the outside, so a fully
     // collapsed payoff used to stop a gap short of all four edges and leave the
@@ -344,7 +364,7 @@ function renderFrame(now) {
             // Once collapsed, the winning card keeps its ground but the rest
             // dissolve, letting the backdrop through — that is the payoff.
             const isPrize = tile.prize === true;
-            sctx.globalAlpha = (collapse > 0 && !isPrize) ? 1 - collapse : 1;
+            sctx.globalAlpha = isPrize ? 1 - merge : 1 - collapse;
             drawTile(tile, x, y, colW, rowH);
             sctx.globalAlpha = 1;
         }
@@ -354,7 +374,10 @@ function renderFrame(now) {
     // Thin black rules between panels — the reference separates the screens with
     // a hairline rather than a gap, so the backdrop reads as one surface.
     const divW = +$('div').value;
-    if (divW > 0 && n > 1) {
+    const dividerAlpha = mergeLogo ? 1 - smoothstep(collapse / 0.72) : 1;
+    if (divW > 0 && n > 1 && dividerAlpha > 0) {
+        sctx.save();
+        sctx.globalAlpha = dividerAlpha;
         sctx.fillStyle = '#000';
         for (let i = 1; i < n; i++) {
             const dx = outerGap + i * (colW + gap) - gap / 2 - divW / 2;
@@ -362,6 +385,21 @@ function renderFrame(now) {
         }
         sctx.fillRect(0, 0, divW, H);
         sctx.fillRect(W - divW, 0, divW, H);
+        sctx.restore();
+    }
+
+    // The final logo is deliberately sized against the shorter dimension. In
+    // 9:16 this creates a large central square instead of three narrow marks,
+    // while landscape formats retain comfortable broadcast-style breathing room.
+    if (merge > 0 && logoImg?.complete && logoImg.naturalWidth > 0) {
+        const portrait = H / W > 1.2;
+        const target = portrait ? Math.min(W * 0.84, H * 0.54)
+                                : Math.min(W * 0.48, H * 0.72);
+        const size = target * (0.72 + 0.28 * easeBack(merge, 0.65));
+        sctx.save();
+        sctx.globalAlpha = merge;
+        sctx.drawImage(logoImg, (W - size) / 2, (H - size) / 2, size, size);
+        sctx.restore();
     }
 
     composite(W, H);
@@ -473,6 +511,7 @@ bindOut('bulge', 'bulgeOut'); bindOut('vig', 'vigOut');
 bindOut('bdScale','bdScaleOut'); bindOut('bdDrift','bdDriftOut');
 bindOut('div','divOut');
 bindOut('endRows','endRowsOut'); bindOut('col','colOut', v => v + 's');
+bindOut('matchHold','matchHoldOut', v => v + 's');
 
 ['reels', 'rows', 'endRows', 'logoFreq'].forEach(id =>
     $(id).addEventListener('change', () => buildReels()));
@@ -540,8 +579,10 @@ async function exportMp4() {
         const spinSeconds = parseFloat($('dur').value);
         const staggerSeconds = parseFloat($('stag').value) * Math.max(0, reels.length - 1);
         const collapseSeconds = parseFloat($('col').value);
+        const matchHoldSeconds = parseFloat($('matchHold').value);
         const holdSeconds = 0.5;
-        const exportDuration = spinSeconds + staggerSeconds + collapseSeconds + holdSeconds;
+        const exportDuration = spinSeconds + staggerSeconds + matchHoldSeconds
+                             + collapseSeconds + holdSeconds;
         const frameCount = Math.max(1, Math.ceil(exportDuration * EXPORT_FPS));
         const quality = new Quality({
             bitrate: width * height >= 1_500_000 ? 18_000_000 : 14_000_000,
@@ -622,9 +663,12 @@ async function exportMp4() {
 
 $('record').addEventListener('click', exportMp4);
 
+const requestedRatio = QUERY.get('ratio');
+if (requestedRatio && RATIOS[requestedRatio]) $('ratio').value = requestedRatio;
+
 buildReels();
 requestAnimationFrame(draw);
 
 // ?autospin — starts a spin on load. Handy when screen-recording the tool or
 // dropping it into a demo where nobody is there to press the button.
-if (location.search.includes('autospin')) setTimeout(startSpin, 300);
+if (QUERY.has('autospin')) setTimeout(startSpin, 300);
