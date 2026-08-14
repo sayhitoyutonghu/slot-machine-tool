@@ -28,6 +28,7 @@ const scene = document.createElement('canvas');
 const sctx = scene.getContext('2d', { alpha: false });
 
 let colours = PALETTE.slice(0, 6);
+let payoffColours = [colours[0], colours[1]];
 let logoImg = new Image();
 logoImg.onload = () => {
     buildReels();
@@ -213,7 +214,7 @@ function drawBackdrop(W, H, now, alpha) {
     const drift = parseFloat($('bdDrift').value);
     const t = (now / 1000) * drift;
 
-    const bg = colours[0], fg = colours[1];
+    const [bg, fg] = payoffColours;
     sctx.fillStyle = bg;
     sctx.fillRect(0, 0, W, H);
     sctx.fillStyle = fg;
@@ -255,6 +256,15 @@ function rng(seed) {
     return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
 
+function choosePayoffColours(seed) {
+    const rand = rng((seed ^ 0x9e3779b9) >>> 0);
+    const winning = $('prizeColor').value.toLowerCase();
+    const alternatives = colours.filter(colour => colour.toLowerCase() !== winning);
+    const otherPool = alternatives.length ? alternatives : colours;
+    const other = otherPool[(rand() * otherPool.length) | 0] || '#111111';
+    payoffColours = rand() < 0.5 ? [winning, other] : [other, winning];
+}
+
 function buildReels(seed = Date.now()) {
     const n = +$('reels').value;
     const rows = +$('rows').value;
@@ -282,6 +292,7 @@ function smoothstep(t) {
 
 function startSpin(startTime = performance.now(), prizeSeed = Date.now()) {
     const rows = +$('rows').value;
+    choosePayoffColours(prizeSeed);
 
     reels.forEach((r, i) => {
         r.from = r.offset;

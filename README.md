@@ -34,6 +34,9 @@ time** controls the following transition into the single final logo.
 **Winning color** sets the ground colour shared by all matching logo tiles for
 the next spin and its MP4 export. That colour is reserved from the procedural
 background and pattern palette, keeping it visually exclusive to the jackpot.
+Each spin also creates a new two-colour payoff pattern: one colour is always the
+winning colour, while the other is randomly selected from the current palette;
+their foreground/background order is randomized as well.
 **Look** — outline weight, how often a logo tile appears, your own logo file,
 six editable colours, reseed. The supplied WTV logo is loaded by default and
 can be replaced from the Logo file control.
