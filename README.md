@@ -32,7 +32,8 @@ instead of leaving three isolated marks in narrow columns.
 panels, so that enlarged jackpot remains on screen before the merge. **Merge
 time** controls the following transition into the single final logo.
 **Winning color** sets the ground colour shared by all matching logo tiles for
-the next spin and its MP4 export.
+the next spin and its MP4 export. That colour is reserved from the procedural
+background and pattern palette, keeping it visually exclusive to the jackpot.
 **Look** — outline weight, how often a logo tile appears, your own logo file,
 six editable colours, reseed. The supplied WTV logo is loaded by default and
 can be replaced from the Logo file control.

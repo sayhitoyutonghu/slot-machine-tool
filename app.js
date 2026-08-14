@@ -68,9 +68,13 @@ let exportInProgress = false;
 const MOTIFS = ['rings', 'stripes', 'dots', 'zigzag', 'checks', 'burst', 'solid', 'logo'];
 
 function makeTile(rand) {
-    const bg = colours[(rand() * colours.length) | 0];
-    let fg = colours[(rand() * colours.length) | 0];
-    if (fg === bg) fg = '#111111';
+    const reserved = $('prizeColor')?.value.toLowerCase();
+    const available = colours.filter(colour => colour.toLowerCase() !== reserved);
+    const pool = available.length > 1 ? available : colours;
+    const bgIndex = (rand() * pool.length) | 0;
+    const bg = pool[bgIndex];
+    let fg = pool[(rand() * pool.length) | 0];
+    if (fg === bg) fg = pool[(bgIndex + 1) % pool.length] || '#111111';
     const logoChance = parseFloat($('logoFreq').value);
     const motif = rand() < logoChance ? 'logo' : MOTIFS[(rand() * (MOTIFS.length - 1)) | 0];
     return { bg, fg, motif, phase: rand() };
@@ -589,6 +593,8 @@ $('logoFile').addEventListener('change', (e) => {
     img.onload = () => { logoImg = img; buildReels(); };
     img.src = URL.createObjectURL(f);
 });
+
+$('prizeColor').addEventListener('input', () => buildReels());
 
 // Colour swatches
 const swatchWrap = $('swatches');
