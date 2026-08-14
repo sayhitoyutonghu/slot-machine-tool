@@ -31,6 +31,8 @@ instead of leaving three isolated marks in narrow columns.
 **Match hold** begins only after the matching row has expanded into three tall
 panels, so that enlarged jackpot remains on screen before the merge. **Merge
 time** controls the following transition into the single final logo.
+**Winning color** sets the ground colour shared by all matching logo tiles for
+the next spin and its MP4 export.
 **Look** — outline weight, how often a logo tile appears, your own logo file,
 six editable colours, reseed. The supplied WTV logo is loaded by default and
 can be replaced from the Logo file control.

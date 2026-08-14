@@ -294,6 +294,7 @@ function startSpin(startTime = performance.now(), prizeSeed = Date.now()) {
         const rand = rng(prizeSeed & 0xffff);
         const prize = makeTile(() => rand());
         prize.motif = 'logo';                     // the payoff is the mark
+        prize.bg = $('prizeColor').value;          // user-directed jackpot ground
         prize.prize = true;
         // The payoff sits on the middle row, which is also the row the collapse
         // keeps — draw() derives the same index, so the two must not diverge.
