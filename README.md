@@ -31,9 +31,11 @@ instead of leaving three isolated marks in narrow columns.
 **Match hold** begins only after the matching row has expanded into three tall
 panels, so that enlarged jackpot remains on screen before the merge. **Merge
 time** controls the following transition into the single final logo.
-**Winning color** sets the ground colour shared by all matching logo tiles for
-the next spin and its MP4 export. That colour is reserved from the procedural
-background and pattern palette, keeping it visually exclusive to the jackpot.
+**Winning color** selects one of the six editable colours in **Look** as the
+ground shared by all matching logo tiles for the next spin and its MP4 export.
+Editing that colour in Look updates the selected winning colour automatically.
+It is reserved from the procedural background and pattern palette, keeping it
+visually exclusive to the jackpot.
 Each spin also creates a new two-colour payoff pattern: one colour is always the
 winning colour, while the other is randomly selected from the current palette;
 their foreground/background order is randomized as well.

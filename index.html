@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Slot Machine Tool</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=palette-winning-color-20260815">
 </head>
 <body>
 <header>
@@ -60,9 +60,11 @@
       <label>Drift <output id="bdDriftOut">0.15</output>
         <input type="range" id="bdDrift" min="0" max="1" step="0.05" value="0.15">
       </label>
-      <label class="color-control">Winning color
-        <input type="color" id="prizeColor" value="#ff4824">
-      </label>
+      <div class="color-control control-group">
+        <span class="control-label">Winning color</span>
+        <span class="winning-swatches" id="winningColors" role="radiogroup" aria-label="Winning color from Look palette"></span>
+        <input type="hidden" id="prizeColor" value="#ff4824">
+      </div>
       <label>Collapse to <output id="endRowsOut">1</output> row(s)
         <input type="range" id="endRows" min="1" max="4" value="1">
       </label>
@@ -142,6 +144,6 @@
   <p>Reference: MTV Music Transitions 2021, 10–15s. Palette sampled from source.</p>
 </footer>
 
-<script src="app.js?v=random-payoff-colors-20260814"></script>
+<script src="app.js?v=palette-winning-color-20260815"></script>
 </body>
 </html>

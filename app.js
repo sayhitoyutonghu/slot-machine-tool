@@ -605,16 +605,48 @@ $('logoFile').addEventListener('change', (e) => {
     img.src = URL.createObjectURL(f);
 });
 
-$('prizeColor').addEventListener('input', () => buildReels());
-
-// Colour swatches
+// Colour swatches. The payoff picker mirrors this palette, so the winning
+// colour is always one of the colours already being used by Look.
 const swatchWrap = $('swatches');
+const winningWrap = $('winningColors');
+let winningColourIndex = Math.max(0, colours.findIndex(colour =>
+    colour.toLowerCase() === $('prizeColor').value.toLowerCase()));
+const winningButtons = [];
+
+function selectWinningColour(index) {
+    winningColourIndex = index;
+    $('prizeColor').value = colours[index];
+    winningButtons.forEach((button, buttonIndex) => {
+        const selected = buttonIndex === index;
+        button.classList.toggle('selected', selected);
+        button.setAttribute('aria-checked', String(selected));
+    });
+    buildReels();
+}
+
 colours.forEach((c, i) => {
+    const winningButton = document.createElement('button');
+    winningButton.type = 'button';
+    winningButton.className = 'winning-swatch';
+    winningButton.style.backgroundColor = c;
+    winningButton.setAttribute('role', 'radio');
+    winningButton.setAttribute('aria-label', `Palette colour ${i + 1}`);
+    winningButton.addEventListener('click', () => selectWinningColour(i));
+    winningWrap.appendChild(winningButton);
+    winningButtons.push(winningButton);
+
     const inp = document.createElement('input');
     inp.type = 'color'; inp.value = c;
-    inp.addEventListener('input', () => { colours[i] = inp.value; buildReels(); });
+    inp.setAttribute('aria-label', `Edit palette colour ${i + 1}`);
+    inp.addEventListener('input', () => {
+        colours[i] = inp.value;
+        winningButton.style.backgroundColor = inp.value;
+        if (i === winningColourIndex) $('prizeColor').value = inp.value;
+        buildReels();
+    });
     swatchWrap.appendChild(inp);
 });
+selectWinningColour(winningColourIndex);
 
 $('shot').addEventListener('click', () => {
     const a = document.createElement('a');

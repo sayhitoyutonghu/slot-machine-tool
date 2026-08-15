@@ -53,14 +53,24 @@ button.recording{background:#ff4824;color:#fff}
 }
 fieldset{border:2px solid var(--line);margin:0 0 14px;padding:10px 12px 12px}
 legend{font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:10px;padding:0 6px}
-label{display:block;margin:9px 0;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+label,.control-group{display:block;margin:9px 0;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.control-label{display:block}
 label.file{margin-top:12px}
 output{float:right;font-weight:700;opacity:.65}
 input[type=range]{width:100%;margin-top:5px;accent-color:var(--ink)}
 select,input[type=file]{width:100%;margin-top:5px;font:inherit;padding:5px;border:2px solid var(--line);background:#fff}
-label.color-control input[type=color]{
-  width:100%;height:34px;margin-top:5px;padding:0;
-  border:2px solid var(--line);background:#fff;cursor:pointer;
+.winning-swatches{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:6px;
+}
+.winning-swatch{
+  position:relative;width:100%;height:30px;padding:0;border:2px solid var(--line);
+  background:#fff;box-shadow:none;cursor:pointer;
+}
+.winning-swatch:hover{filter:brightness(.9)}
+.winning-swatch:active{transform:none;box-shadow:none}
+.winning-swatch.selected::after{
+  content:"";position:absolute;inset:4px;border:2px solid #fff;
+  box-shadow:0 0 0 1px #000;
 }
 
 .swatches{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
