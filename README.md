@@ -36,6 +36,8 @@ ground shared by all matching logo tiles for the next spin and its MP4 export.
 Editing that colour in Look updates the selected winning colour automatically.
 It is reserved from the procedural background and pattern palette, keeping it
 visually exclusive to the jackpot.
+Each new spin replaces the previous forced jackpot tiles with ordinary tiles,
+so repeated spins cannot accumulate extra matching rows.
 Each spin also creates a new two-colour payoff pattern: one colour is always the
 winning colour, while the other is randomly selected from the current palette;
 their foreground/background order is randomized as well.

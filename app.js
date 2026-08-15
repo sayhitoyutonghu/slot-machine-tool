@@ -290,11 +290,20 @@ function smoothstep(t) {
     return x * x * (3 - 2 * x);
 }
 
+function recyclePrizeTiles(strip, createTile) {
+    return strip.map(tile => tile.prize ? createTile() : tile);
+}
+
 function startSpin(startTime = performance.now(), prizeSeed = Date.now()) {
     const rows = +$('rows').value;
     choosePayoffColours(prizeSeed);
+    const recycleRand = rng((prizeSeed ^ 0x85ebca6b) >>> 0);
 
     reels.forEach((r, i) => {
+        // A prize tile is written into each strip on every spin. Replace the
+        // previous spin's prize before choosing the next stop, otherwise those
+        // forced matches accumulate and can produce two or more winning rows.
+        r.strip = recyclePrizeTiles(r.strip, () => makeTile(recycleRand));
         r.from = r.offset;
         // Always target an integer tile boundary, even when a new spin starts
         // before the previous one has fully settled at a fractional offset.
