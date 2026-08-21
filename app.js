@@ -60,6 +60,13 @@ logoImg.onload = () => {
 logoImg.src = new URL('wtv-logo.png', document.baseURI).href;
 let reels = [];
 let spinStart = null;
+// The reels are the random part; the payout is the fixed thing you pull for.
+// Seeding it off the clock meant every spin and every export rolled a fresh
+// pair, so a bumper's wide and tall cuts were two separate pulls and landed on
+// two different colours — and the payout colour is the bumper's identity, so
+// that made ten palettes to keep straight instead of five. This survives a
+// ratio switch and a second export. RESEED is the only thing that rolls it.
+let payoffSeed = Date.now();
 let exportInProgress = false;
 
 /* ── tile artwork ──────────────────────────────────────────────────────
@@ -235,6 +242,46 @@ function drawBackdrop(W, H, now, alpha) {
         const sw = (W / 14) * scale;
         const phase = (t * sw * 2) % (sw * 2);
         for (let x = -sw * 2 + phase; x < W + sw; x += sw * 2) sctx.fillRect(x, 0, sw, H);
+    } else if (kind === 'zigzag') {
+        // Chevron bands stacked down the frame. Drawn as filled strips rather
+        // than stroked lines so the two colours meet edge to edge, the way the
+        // tile motif does — a stroke would leave the ground showing between
+        // them at this scale.
+        const band = (H / 11) * scale;
+        const teeth = Math.max(2, Math.round(6 / scale));
+        const amp = band * 0.85;
+        const phase = (t * band * 2) % (band * 2);
+        const edge = (i) => (i % 2 === 0 ? 0 : amp);
+        for (let y = -band * 3 + phase; y < H + band * 3; y += band * 2) {
+            sctx.beginPath();
+            for (let i = 0; i <= teeth; i++) sctx[i === 0 ? 'moveTo' : 'lineTo']((i / teeth) * W, y + edge(i));
+            for (let i = teeth; i >= 0; i--) sctx.lineTo((i / teeth) * W, y + band + edge(i));
+            sctx.closePath();
+            sctx.fill();
+        }
+    } else if (kind === 'dots') {
+        const step = (Math.max(W, H) / 13) * scale;
+        const radius = step * 0.29;
+        const phase = (t * step) % step;
+        for (let y = -step + phase; y < H + step; y += step) {
+            for (let x = -step + phase; x < W + step; x += step) {
+                sctx.beginPath();
+                sctx.arc(x, y, radius, 0, Math.PI * 2);
+                sctx.fill();
+            }
+        }
+    } else if (kind === 'checks') {
+        const step = (Math.max(W, H) / 11) * scale;
+        // Drift a whole cell per beat: at anything less the squares crawl and
+        // the eye reads the seam instead of the pattern.
+        const phase = (t * step) % (step * 2);
+        let row = 0;
+        for (let y = -step * 2 + phase; y < H + step * 2; y += step, row++) {
+            let col = 0;
+            for (let x = -step * 2; x < W + step * 2; x += step, col++) {
+                if ((row + col) % 2 === 0) sctx.fillRect(x, y, step, step);
+            }
+        }
     } else if (kind === 'burst') {
         const spokes = Math.max(6, Math.round(20 / scale));
         for (let i = 0; i < spokes; i += 2) {
@@ -294,7 +341,7 @@ function recyclePrizeTiles(strip, createTile) {
     return strip.map(tile => tile.prize ? createTile() : tile);
 }
 
-function startSpin(startTime = performance.now(), prizeSeed = Date.now()) {
+function startSpin(startTime = performance.now(), prizeSeed = payoffSeed) {
     const rows = +$('rows').value;
     choosePayoffColours(prizeSeed);
     const recycleRand = rng((prizeSeed ^ 0x85ebca6b) >>> 0);
@@ -604,7 +651,12 @@ bindOut('mergeTime','mergeTimeOut', v => v + 's');
     $(id).addEventListener('change', () => buildReels()));
 
 $('spin').addEventListener('click', () => startSpin());
-$('reseed').addEventListener('click', () => buildReels());
+$('reseed').addEventListener('click', () => {
+    payoffSeed = Date.now();
+    buildReels();
+    // Shown so two exports can be told apart: same number, same payout.
+    $('status').textContent = `Payout ${(payoffSeed & 0xffff).toString(16).toUpperCase().padStart(4, '0')}`;
+});
 
 $('logoFile').addEventListener('change', (e) => {
     const f = e.target.files[0];
@@ -742,8 +794,7 @@ async function exportMp4() {
         });
         await output.start();
 
-        const exportSeed = Date.now();
-        startSpin(0, exportSeed);
+        startSpin(0, payoffSeed);
         for (let frame = 0; frame < frameCount; frame++) {
             const timestamp = frame / EXPORT_FPS;
             renderFrame(timestamp * 1000);
